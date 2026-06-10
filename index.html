@@ -2,672 +2,293 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Décès — API Melodi INSEE</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <title>Naissances et décès par département</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    /* ---- tokens ---- */
-    :root {
-      --bg:       #0e1117;
-      --surface:  #161b27;
-      --border:   #252d3e;
-      --accent:   #4f7fff;
-      --accent2:  #ff6b6b;
-      --text:     #e4e9f4;
-      --muted:    #6b7799;
-      --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-      --font-sans: 'Inter', system-ui, sans-serif;
-      --radius:   10px;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font-sans);
-      min-height: 100vh;
-    }
-
-    /* ---- header ---- */
-    header {
-      border-bottom: 1px solid var(--border);
-      padding: 1.4rem 2rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-    .logo-badge {
-      background: var(--accent);
-      color: #fff;
-      font-size: .65rem;
-      font-family: var(--font-mono);
-      letter-spacing: .08em;
-      padding: .25rem .5rem;
-      border-radius: 4px;
-      text-transform: uppercase;
-    }
-    header h1 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: var(--text);
-    }
-    header small {
-      font-size: .75rem;
-      color: var(--muted);
-      margin-left: auto;
-    }
-
-    /* ---- layout ---- */
-    main {
+      font-family: Arial, sans-serif;
       max-width: 1100px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem;
-      display: grid;
-      gap: 1.5rem;
+      margin: auto;
+      padding: 30px;
+      background: #f7f7f7;
     }
 
-    /* ---- control panel ---- */
+    h1 {
+      margin-bottom: 10px;
+    }
+
     .controls {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.4rem 1.6rem;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.2rem 1.5rem;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
       align-items: end;
     }
 
-    .field label {
-      display: block;
-      font-size: .72rem;
-      letter-spacing: .06em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: .4rem;
-      font-family: var(--font-mono);
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+      font-weight: bold;
     }
 
-    select, input[type="number"] {
-      width: 100%;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      color: var(--text);
-      font-family: var(--font-sans);
-      font-size: .9rem;
-      padding: .55rem .75rem;
-      appearance: none;
-      cursor: pointer;
-      transition: border-color .15s;
-    }
-    select:focus, input[type="number"]:focus {
-      outline: none;
-      border-color: var(--accent);
+    input {
+      padding: 8px;
+      margin-top: 5px;
     }
 
-    button#fetch-btn {
-      background: var(--accent);
-      color: #fff;
+    button {
+      padding: 10px 16px;
       border: none;
-      border-radius: 6px;
-      padding: .6rem 1.4rem;
-      font-size: .9rem;
-      font-weight: 600;
+      border-radius: 8px;
+      background: #222;
+      color: white;
       cursor: pointer;
-      transition: opacity .15s, transform .1s;
-      align-self: end;
-      width: 100%;
-    }
-    button#fetch-btn:hover  { opacity: .85; }
-    button#fetch-btn:active { transform: scale(.98); }
-    button#fetch-btn:disabled { opacity: .4; cursor: not-allowed; }
-
-    /* ---- stat cards ---- */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-    }
-    .stat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.1rem 1.2rem;
-    }
-    .stat-card .label {
-      font-size: .68rem;
-      text-transform: uppercase;
-      letter-spacing: .07em;
-      color: var(--muted);
-      font-family: var(--font-mono);
-      margin-bottom: .3rem;
-    }
-    .stat-card .value {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
-    }
-    .stat-card .sub {
-      font-size: .75rem;
-      color: var(--muted);
-      margin-top: .25rem;
     }
 
-    /* ---- chart panel ---- */
-    .chart-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 1.4rem 1.6rem;
-    }
-    .chart-panel h2 {
-      font-size: .85rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      color: var(--muted);
-      font-family: var(--font-mono);
-      margin-bottom: 1.2rem;
-    }
-    .chart-wrap {
-      position: relative;
-      height: 340px;
+    button:hover {
+      background: #444;
     }
 
-    /* ---- notice / error ---- */
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+    }
+
+    canvas {
+      max-height: 420px;
+    }
+
     #status {
-      font-family: var(--font-mono);
-      font-size: .8rem;
-      padding: .7rem 1rem;
-      border-radius: 6px;
-      display: none;
+      font-weight: bold;
+      margin-bottom: 15px;
     }
-    #status.info  { background: #1a2340; color: #7eaaff; border: 1px solid #2a3a60; display: block; }
-    #status.error { background: #2a1a1a; color: #ff8888; border: 1px solid #50282a; display: block; }
-    #status.ok    { background: #182a1a; color: #80d480; border: 1px solid #1e401e; display: block; }
-
-    /* ---- loader ---- */
-    .spinner {
-      display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid rgba(79,127,255,.3);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-      vertical-align: middle;
-      margin-right: .4rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ---- raw data toggle ---- */
-    details {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-    }
-    details summary {
-      padding: .8rem 1.2rem;
-      cursor: pointer;
-      font-size: .78rem;
-      font-family: var(--font-mono);
-      color: var(--muted);
-      list-style: none;
-      user-select: none;
-    }
-    details summary::-webkit-details-marker { display: none; }
-    details summary::before {
-      content: '▸ ';
-      color: var(--accent);
-    }
-    details[open] summary::before { content: '▾ '; }
-    #raw-out {
-      font-family: var(--font-mono);
-      font-size: .7rem;
-      color: #9ab;
-      overflow-x: auto;
-      padding: .8rem 1.2rem 1rem;
-      max-height: 320px;
-      overflow-y: auto;
-      white-space: pre;
-      border-top: 1px solid var(--border);
-    }
-
-    /* ---- footer ---- */
-    footer {
-      text-align: center;
-      font-size: .7rem;
-      color: var(--muted);
-      padding: 1.5rem;
-      font-family: var(--font-mono);
-    }
-    footer a { color: var(--accent); text-decoration: none; }
-
-    /* ---- hidden ---- */
-    .hidden { display: none !important; }
   </style>
 </head>
+
 <body>
+  <h1>Comparatif naissances / décès</h1>
+  <p>Données INSEE Melodi par département.</p>
 
-<header>
-  <span class="logo-badge">API Melodi</span>
-  <h1>Décès quotidiens &amp; mensuels — INSEE</h1>
-  <small>DS_EC_DECES · sans authentification</small>
-</header>
-
-<main>
-
-  <!-- Controls -->
   <div class="controls">
-    <div class="field">
-      <label>Département</label>
-      <select id="dep-select">
-        <option value="01">01 — Ain</option>
-        <option value="02">02 — Aisne</option>
-        <option value="03">03 — Allier</option>
-        <option value="04">04 — Alpes-de-Haute-Provence</option>
-        <option value="05">05 — Hautes-Alpes</option>
-        <option value="06">06 — Alpes-Maritimes</option>
-        <option value="07">07 — Ardèche</option>
-        <option value="08">08 — Ardennes</option>
-        <option value="09">09 — Ariège</option>
-        <option value="10">10 — Aube</option>
-        <option value="11">11 — Aude</option>
-        <option value="12">12 — Aveyron</option>
-        <option value="13">13 — Bouches-du-Rhône</option>
-        <option value="14">14 — Calvados</option>
-        <option value="15">15 — Cantal</option>
-        <option value="16">16 — Charente</option>
-        <option value="17">17 — Charente-Maritime</option>
-        <option value="18">18 — Cher</option>
-        <option value="19">19 — Corrèze</option>
-        <option value="2A">2A — Corse-du-Sud</option>
-        <option value="2B">2B — Haute-Corse</option>
-        <option value="21">21 — Côte-d'Or</option>
-        <option value="22">22 — Côtes-d'Armor</option>
-        <option value="23">23 — Creuse</option>
-        <option value="24">24 — Dordogne</option>
-        <option value="25">25 — Doubs</option>
-        <option value="26">26 — Drôme</option>
-        <option value="27">27 — Eure</option>
-        <option value="28">28 — Eure-et-Loir</option>
-        <option value="29">29 — Finistère</option>
-        <option value="30">30 — Gard</option>
-        <option value="31">31 — Haute-Garonne</option>
-        <option value="32">32 — Gers</option>
-        <option value="33">33 — Gironde</option>
-        <option value="34">34 — Hérault</option>
-        <option value="35">35 — Ille-et-Vilaine</option>
-        <option value="36">36 — Indre</option>
-        <option value="37">37 — Indre-et-Loire</option>
-        <option value="38">38 — Isère</option>
-        <option value="39">39 — Jura</option>
-        <option value="40">40 — Landes</option>
-        <option value="41">41 — Loir-et-Cher</option>
-        <option value="42">42 — Loire</option>
-        <option value="43">43 — Haute-Loire</option>
-        <option value="44">44 — Loire-Atlantique</option>
-        <option value="45">45 — Loiret</option>
-        <option value="46">46 — Lot</option>
-        <option value="47">47 — Lot-et-Garonne</option>
-        <option value="48">48 — Lozère</option>
-        <option value="49">49 — Maine-et-Loire</option>
-        <option value="50">50 — Manche</option>
-        <option value="51">51 — Marne</option>
-        <option value="52">52 — Haute-Marne</option>
-        <option value="53">53 — Mayenne</option>
-        <option value="54">54 — Meurthe-et-Moselle</option>
-        <option value="55">55 — Meuse</option>
-        <option value="56">56 — Morbihan</option>
-        <option value="57">57 — Moselle</option>
-        <option value="58">58 — Nièvre</option>
-        <option value="59">59 — Nord</option>
-        <option value="60">60 — Oise</option>
-        <option value="61">61 — Orne</option>
-        <option value="62">62 — Pas-de-Calais</option>
-        <option value="63">63 — Puy-de-Dôme</option>
-        <option value="64">64 — Pyrénées-Atlantiques</option>
-        <option value="65">65 — Hautes-Pyrénées</option>
-        <option value="66">66 — Pyrénées-Orientales</option>
-        <option value="67">67 — Bas-Rhin</option>
-        <option value="68">68 — Haut-Rhin</option>
-        <option value="69">69 — Rhône</option>
-        <option value="70">70 — Haute-Saône</option>
-        <option value="71">71 — Saône-et-Loire</option>
-        <option value="72">72 — Sarthe</option>
-        <option value="73">73 — Savoie</option>
-        <option value="74">74 — Haute-Savoie</option>
-        <option value="75">75 — Paris</option>
-        <option value="76">76 — Seine-Maritime</option>
-        <option value="77">77 — Seine-et-Marne</option>
-        <option value="78">78 — Yvelines</option>
-        <option value="79">79 — Deux-Sèvres</option>
-        <option value="80">80 — Somme</option>
-        <option value="81">81 — Tarn</option>
-        <option value="82">82 — Tarn-et-Garonne</option>
-        <option value="83">83 — Var</option>
-        <option value="84">84 — Vaucluse</option>
-        <option value="85">85 — Vendée</option>
-        <option value="86" selected>86 — Vienne</option>
-        <option value="87">87 — Haute-Vienne</option>
-        <option value="88">88 — Vosges</option>
-        <option value="89">89 — Yonne</option>
-        <option value="90">90 — Territoire de Belfort</option>
-        <option value="91">91 — Essonne</option>
-        <option value="92">92 — Hauts-de-Seine</option>
-        <option value="93">93 — Seine-Saint-Denis</option>
-        <option value="94">94 — Val-de-Marne</option>
-        <option value="95">95 — Val-d'Oise</option>
-        <option value="971">971 — Guadeloupe</option>
-        <option value="972">972 — Martinique</option>
-        <option value="973">973 — Guyane</option>
-        <option value="974">974 — La Réunion</option>
-        <option value="976">976 — Mayotte</option>
-      </select>
-    </div>
+    <label>
+      Département
+      <input id="departement" value="86" />
+    </label>
 
-    <div class="field">
-      <label>Fréquence</label>
-      <select id="freq-select">
-        <option value="M">Mensuelle</option>
-        <option value="D">Quotidienne</option>
-      </select>
-    </div>
+    <label>
+      Année min
+      <input id="anneeMin" type="number" value="1975" />
+    </label>
 
-    <div class="field">
-      <label>Nb de périodes max</label>
-      <input type="number" id="limit-input" value="24" min="6" max="120" />
-    </div>
+    <label>
+      Année max
+      <input id="anneeMax" type="number" value="2024" />
+    </label>
 
-    <div class="field">
-      <button id="fetch-btn">Charger les données</button>
-    </div>
+    <button onclick="chargerDonnees()">Générer</button>
   </div>
 
-  <!-- Status -->
   <div id="status"></div>
 
-  <!-- Stat cards -->
-  <div class="stats-row hidden" id="stats-row">
-    <div class="stat-card">
-      <div class="label">Observations</div>
-      <div class="value" id="s-obs">—</div>
-      <div class="sub">périodes chargées</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Total décès</div>
-      <div class="value" id="s-total">—</div>
-      <div class="sub">sur la période</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Moyenne / période</div>
-      <div class="value" id="s-mean">—</div>
-      <div class="sub">décès</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Max</div>
-      <div class="value" id="s-max">—</div>
-      <div class="sub" id="s-max-label">période</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">Min</div>
-      <div class="value" id="s-min">—</div>
-      <div class="sub" id="s-min-label">période</div>
-    </div>
+  <div class="card">
+    <h2>Naissances et décès</h2>
+    <canvas id="chartComparatif"></canvas>
   </div>
 
-  <!-- Chart -->
-  <div class="chart-panel hidden" id="chart-panel">
-    <h2 id="chart-title">Décès — chargement…</h2>
-    <div class="chart-wrap">
-      <canvas id="myChart"></canvas>
-    </div>
+  <div class="card">
+    <h2>Solde naturel</h2>
+    <canvas id="chartSolde"></canvas>
   </div>
 
-  <!-- Raw JSON -->
-  <details id="raw-details" class="hidden">
-    <summary>Réponse brute de l'API (JSON)</summary>
-    <pre id="raw-out"></pre>
-  </details>
+  <script>
+    let chartComparatif = null;
+    let chartSolde = null;
 
-</main>
-
-<footer>
-  Données : <a href="https://api.insee.fr/melodi/" target="_blank">api.insee.fr/melodi</a> · jeu DS_EC_DECES · Licence Ouverte Etalab
-</footer>
-
-<script>
-  /* =========================================================
-     Helpers
-  ========================================================= */
-  const $ = id => document.getElementById(id);
-  let chartInstance = null;
-
-  function setStatus(msg, type = 'info') {
-    const el = $('status');
-    el.className = type;
-    el.innerHTML = msg;
-    el.style.display = 'block';
-  }
-  function hideStatus() { $('status').style.display = 'none'; }
-
-  function fmt(n) {
-    if (n === null || n === undefined) return '—';
-    return Number(n).toLocaleString('fr-FR');
-  }
-
-  /* =========================================================
-     Build Melodi URL
-     DS_EC_DECES dimensions relevantes :
-       GEO  = code département (ex. 86)
-       FREQ = M (mensuelle) ou D (quotidienne)
-       IND  = indicateur ; on cible NBDEC (nombre de décès)
-     endpoint : /melodi/data/{dataset}?{filters}&maxResult={n}
-  ========================================================= */
-  function buildUrl(dep, freq, limit) {
-    // L'API Melodi accepte les filtres comme query params du nom de la dimension
-    // Ordre : startPeriod/endPeriod pour borner dans le temps si besoin
-    const base = 'https://api.insee.fr/melodi/data/DS_EC_DECES';
-    const params = new URLSearchParams({
-      GEO: dep,
-      FREQ: freq,
-      maxResult: String(limit),
-    });
-    return `${base}?${params.toString()}`;
-  }
-
-  /* =========================================================
-     Parse the JSON-stat / custom Melodi response
-     La réponse Melodi est au format SDMX-JSON ou similaire.
-     On extrait les séries via data.dataSets[0].series
-  ========================================================= */
-  function parseMelodi(json) {
-    // Melodi renvoie un format proche de SDMX-JSON
-    // Structure : { data: { dataSets: [ { series: { "0:0:…": { observations: { "0": [val,…], … } } } } ] , structure: { dimensions: { observation: [{…}] } } } }
-    const ds = json.data?.dataSets?.[0];
-    const structure = json.data?.structure;
-    if (!ds || !structure) return null;
-
-    // Récupérer la dimension TIME_PERIOD dans les observations
-    const obsDims = structure.dimensions?.observation || [];
-    const timeDim = obsDims.find(d => d.id === 'TIME_PERIOD');
-    const timeValues = timeDim?.values || [];  // [{id: "2024-01", …}, …]
-
-    // Collecter toutes les séries et agréger par période
-    const aggByPeriod = {};
-
-    for (const [_key, serie] of Object.entries(ds.series || {})) {
-      const obs = serie.observations || {};
-      for (const [idx, obsArr] of Object.entries(obs)) {
-        const periodLabel = timeValues[parseInt(idx)]?.id || idx;
-        const val = obsArr[0]; // première valeur = OBS_VALUE
-        if (val !== null && val !== undefined && !isNaN(val)) {
-          aggByPeriod[periodLabel] = (aggByPeriod[periodLabel] || 0) + Number(val);
-        }
-      }
-    }
-
-    const sorted = Object.entries(aggByPeriod)
-      .sort(([a], [b]) => a.localeCompare(b));
-
-    return sorted.map(([period, value]) => ({ period, value }));
-  }
-
-  /* =========================================================
-     Fetch & render
-  ========================================================= */
-  async function fetchAndRender() {
-    const dep   = $('dep-select').value;
-    const freq  = $('freq-select').value;
-    const limit = Math.max(6, Math.min(120, parseInt($('limit-input').value) || 24));
-    const btn   = $('fetch-btn');
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Chargement…';
-    setStatus('<span class="spinner"></span>Requête vers api.insee.fr/melodi…', 'info');
-    ['stats-row','chart-panel','raw-details'].forEach(id => $( id ).classList.add('hidden'));
-
-    const url = buildUrl(dep, freq, limit);
-
-    let json;
-    try {
-      const res = await fetch(url, {
-        headers: { 'Accept': 'application/json' }
+    async function fetchMelodi(url, nomColonne) {
+      const response = await fetch(url, {
+        headers: { "Accept": "application/json" }
       });
 
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`HTTP ${res.status} — ${txt.slice(0, 200)}`);
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text);
       }
-      json = await res.json();
-    } catch (err) {
-      setStatus(`❌ Erreur réseau ou API : ${err.message}`, 'error');
-      btn.disabled = false;
-      btn.textContent = 'Charger les données';
-      return;
+
+      const data = await response.json();
+      const observations = data.observations || [];
+
+      return observations.map(obs => {
+        const dimensions = obs.dimensions || {};
+        const valeur = obs.measures?.OBS_VALUE_NIVEAU?.value ?? null;
+
+        return {
+          ...dimensions,
+          [nomColonne]: Number(valeur)
+        };
+      });
     }
 
-    // Afficher JSON brut
-    $('raw-out').textContent = JSON.stringify(json, null, 2);
-    $('raw-details').classList.remove('hidden');
+    async function chargerDonnees() {
+      const departement = document.getElementById("departement").value.trim();
+      const anneeMin = Number(document.getElementById("anneeMin").value);
+      const anneeMax = Number(document.getElementById("anneeMax").value);
 
-    // Parser
-    const series = parseMelodi(json);
+      const status = document.getElementById("status");
+      status.textContent = "Chargement des données INSEE...";
 
-    if (!series || series.length === 0) {
-      setStatus('⚠️ Aucune donnée exploitable dans la réponse. Consultez le JSON brut ci-dessous pour inspecter la structure.', 'error');
-      btn.disabled = false;
-      btn.textContent = 'Charger les données';
-      return;
+      try {
+        const urlDeces =
+          `https://api.insee.fr/melodi/data/DS_DECES_MORTALITE_SERIES` +
+          `?GEO=2025-DEP-${departement}` +
+          `&EC_MEASURE=DTH_PLACE_RES` +
+          `&SEASONAL_ADJUST=N` +
+          `&SEX=_T` +
+          `&FREQ=A` +
+          `&UNIT_MEASURE=NR` +
+          `&AGE=_T`;
+
+        const urlNaissances =
+          `https://api.insee.fr/melodi/data/DS_EC_NAIS` +
+          `?GEO=2025-DEP-${departement}` +
+          `&EC_MEASURE=LVB` +
+          `&FREQ=M`;
+
+        const deces = await fetchMelodi(urlDeces, "DECES");
+        const naissancesMensuelles = await fetchMelodi(urlNaissances, "NAISSANCES");
+
+        const decesAnnuel = deces.map(d => ({
+          annee: Number(d.TIME_PERIOD),
+          deces: d.DECES
+        }));
+
+        const naissancesParAnnee = {};
+
+        naissancesMensuelles.forEach(n => {
+          const annee = Number(String(n.TIME_PERIOD).slice(0, 4));
+
+          if (!naissancesParAnnee[annee]) {
+            naissancesParAnnee[annee] = 0;
+          }
+
+          naissancesParAnnee[annee] += n.NAISSANCES;
+        });
+
+        const naissancesAnnuel = Object.entries(naissancesParAnnee).map(([annee, total]) => ({
+          annee: Number(annee),
+          naissances: total
+        }));
+
+        const merged = decesAnnuel
+          .map(d => {
+            const naissance = naissancesAnnuel.find(n => n.annee === d.annee);
+
+            if (!naissance) return null;
+
+            return {
+              annee: d.annee,
+              deces: d.deces,
+              naissances: naissance.naissances,
+              solde: naissance.naissances - d.deces
+            };
+          })
+          .filter(d =>
+            d !== null &&
+            d.annee >= anneeMin &&
+            d.annee <= anneeMax
+          )
+          .sort((a, b) => a.annee - b.annee);
+
+        if (merged.length === 0) {
+          status.textContent = "Aucune donnée trouvée pour cette période.";
+          return;
+        }
+
+        status.textContent = `${merged.length} années chargées pour le département ${departement}.`;
+
+        afficherGraphiques(merged, departement);
+
+      } catch (error) {
+        console.error(error);
+        status.textContent = "Erreur : " + error.message;
+      }
     }
 
-    // Stats
-    const vals   = series.map(d => d.value);
-    const total  = vals.reduce((a, b) => a + b, 0);
-    const mean   = total / vals.length;
-    const maxVal = Math.max(...vals);
-    const minVal = Math.min(...vals);
-    const maxPer = series[vals.indexOf(maxVal)]?.period;
-    const minPer = series[vals.indexOf(minVal)]?.period;
+    function afficherGraphiques(data, departement) {
+      const labels = data.map(d => d.annee);
+      const naissances = data.map(d => d.naissances);
+      const deces = data.map(d => d.deces);
+      const solde = data.map(d => d.solde);
 
-    $('s-obs').textContent   = fmt(series.length);
-    $('s-total').textContent = fmt(total);
-    $('s-mean').textContent  = Math.round(mean).toLocaleString('fr-FR');
-    $('s-max').textContent   = fmt(maxVal);
-    $('s-min').textContent   = fmt(minVal);
-    $('s-max-label').textContent = maxPer;
-    $('s-min-label').textContent = minPer;
-    $('stats-row').classList.remove('hidden');
+      if (chartComparatif) chartComparatif.destroy();
+      if (chartSolde) chartSolde.destroy();
 
-    // Titre chart
-    const depLabel = $('dep-select').options[$('dep-select').selectedIndex].text;
-    const freqLabel = freq === 'M' ? 'mensuel' : 'quotidien';
-    $('chart-title').textContent = `Nb de décès ${freqLabel} — Dép. ${depLabel}`;
-
-    // Chart
-    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
-
-    const labels = series.map(d => d.period);
-    const data   = series.map(d => d.value);
-
-    // Gradient couleur selon valeur (rouge sur les pics)
-    const ctx = $('myChart').getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, 340);
-    gradient.addColorStop(0,   'rgba(255,107,107,0.85)');
-    gradient.addColorStop(.5,  'rgba(79,127,255,0.65)');
-    gradient.addColorStop(1,   'rgba(79,127,255,0.10)');
-
-    chartInstance = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Décès',
-          data,
-          backgroundColor: gradient,
-          borderColor: 'rgba(79,127,255,0.8)',
-          borderWidth: 1,
-          borderRadius: 3,
-          borderSkipped: false,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1a2340',
-            titleColor: '#e4e9f4',
-            bodyColor: '#9ab5e0',
-            borderColor: '#2a3a60',
-            borderWidth: 1,
-            callbacks: {
-              label: ctx => ` ${ctx.parsed.y.toLocaleString('fr-FR')} décès`
+      chartComparatif = new Chart(
+        document.getElementById("chartComparatif"),
+        {
+          type: "line",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Naissances",
+                data: naissances,
+                borderWidth: 2,
+                tension: 0.2
+              },
+              {
+                label: "Décès",
+                data: deces,
+                borderWidth: 2,
+                tension: 0.2
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: `Naissances et décès - Département ${departement}`
+              }
             }
           }
-        },
-        scales: {
-          x: {
-            ticks: {
-              color: '#6b7799',
-              font: { family: "'JetBrains Mono', monospace", size: 10 },
-              maxRotation: 45,
-              maxTicksLimit: 24,
-            },
-            grid: { color: 'rgba(255,255,255,.04)' }
+        }
+      );
+
+      chartSolde = new Chart(
+        document.getElementById("chartSolde"),
+        {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: "Solde naturel",
+                data: solde,
+                borderWidth: 1
+              }
+            ]
           },
-          y: {
-            ticks: {
-              color: '#6b7799',
-              font: { family: "'JetBrains Mono', monospace", size: 11 },
-              callback: v => v.toLocaleString('fr-FR'),
-            },
-            grid: { color: 'rgba(255,255,255,.06)' }
+          options: {
+            responsive: true,
+            plugins: {
+              title: {
+                display: true,
+                text: `Solde naturel - Département ${departement}`
+              }
+            }
           }
         }
-      }
-    });
+      );
+    }
 
-    $('chart-panel').classList.remove('hidden');
-    setStatus(`✓ ${series.length} observations chargées pour ${depLabel} (freq=${freq}).`, 'ok');
-
-    btn.disabled = false;
-    btn.textContent = 'Charger les données';
-  }
-
-  /* =========================================================
-     Init
-  ========================================================= */
-  $('fetch-btn').addEventListener('click', fetchAndRender);
-
-  // Lancement automatique au chargement
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(fetchAndRender, 300);
-  });
-</script>
+    chargerDonnees();
+  </script>
 </body>
 </html>
